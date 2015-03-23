@@ -1,6 +1,6 @@
 'use strict';
 
-var directiveModule = angular.module('angularjs-dropdown-multiselect', []);
+var directiveModule = angular.module('expenseManagerDirective', []);
 
 directiveModule.directive('ngDropdownMultiselect', ['$filter', '$document', '$compile', '$parse',
     function ($filter, $document, $compile, $parse) {
@@ -36,12 +36,12 @@ directiveModule.directive('ngDropdownMultiselect', ['$filter', '$document', '$co
                     template += '<li role="presentation" ng-repeat="option in options | filter: searchFilter">';
                 }
 
-                template += '<a role="menuitem" tabindex="-1" ng-click="setSelectedItem(getPropertyForObject(option,settings.idProp))">';
+                template += '<a role="menuitem" tabindex="-1" ng-click="setSelectedItem(getPropertyForObject(option,settings.idProp), getPropertyForObject(option,settings.nameProp))">';
 
                 if (checkboxes) {
-                    template += '<div class="checkbox"><label><input class="checkboxInput" type="checkbox" ng-click="checkboxClick($event, getPropertyForObject(option,settings.idProp))" ng-checked="isChecked(getPropertyForObject(option,settings.idProp))" /> {{getPropertyForObject(option, settings.displayProp)}}</label></div></a>';
+                    template += '<div class="checkbox"><label><input class="checkboxInput" type="checkbox" ng-click="checkboxClick($event, getPropertyForObject(option,settings.idProp), getPropertyForObject(option,settings.nameProp))" ng-checked="isChecked(getPropertyForObject(option,settings.idProp),getPropertyForObject(option,settings.nameProp))" /> {{getPropertyForObject(option, settings.displayProp)}}</label></div></a>';
                 } else {
-                    template += '<span data-ng-class="{\'glyphicon glyphicon-ok\': isChecked(getPropertyForObject(option,settings.idProp))}"></span> {{getPropertyForObject(option, settings.displayProp)}}</a>';
+                    template += '<span data-ng-class="{\'glyphicon glyphicon-ok\': isChecked(getPropertyForObject(option,settings.idProp),getPropertyForObject(option,settings.nameProp))}"></span> {{getPropertyForObject(option, settings.displayProp)}}</a>';
                 }
 
                 template += '</li>';
@@ -56,13 +56,13 @@ directiveModule.directive('ngDropdownMultiselect', ['$filter', '$document', '$co
             },
             link: function ($scope, $element, $attrs) {
                 var $dropdownTrigger = $element.children()[0];
-                
+
                 $scope.toggleDropdown = function () {
                     $scope.open = !$scope.open;
                 };
 
-                $scope.checkboxClick = function ($event, id) {
-                    $scope.setSelectedItem(id);
+                $scope.checkboxClick = function ($event, id, name) {
+                    $scope.setSelectedItem(id, name);
                     $event.stopImmediatePropagation();
                 };
 
@@ -83,6 +83,8 @@ directiveModule.directive('ngDropdownMultiselect', ['$filter', '$document', '$co
                     displayProp: 'label',
                     idProp: 'id',
                     externalIdProp: 'id',
+                    nameProp: 'label',
+                    externalNameProp: 'label',
                     enableSearch: false,
                     selectionLimit: 0,
                     showCheckAll: true,
@@ -122,13 +124,15 @@ directiveModule.directive('ngDropdownMultiselect', ['$filter', '$document', '$co
 
                 $scope.singleSelection = $scope.settings.selectionLimit === 1;
 
-                function getFindObj(id) {
+                function getFindObj(id, name) {
                     var findObj = {};
 
                     if ($scope.settings.externalIdProp === '') {
                         findObj[$scope.settings.idProp] = id;
+                        findObj[$scope.settings.nameProp] = name;
                     } else {
                         findObj[$scope.settings.externalIdProp] = id;
+                        findObj[$scope.settings.externalNameProp] = name;
                     }
 
                     return findObj;
@@ -217,6 +221,7 @@ directiveModule.directive('ngDropdownMultiselect', ['$filter', '$document', '$co
                 };
 
                 $scope.getPropertyForObject = function (object, property) {
+
                     if (angular.isDefined(object) && object.hasOwnProperty(property)) {
                         return object[property];
                     }
@@ -229,7 +234,7 @@ directiveModule.directive('ngDropdownMultiselect', ['$filter', '$document', '$co
                     $scope.externalEvents.onSelectAll();
 
                     angular.forEach($scope.options, function (value) {
-                        $scope.setSelectedItem(value[$scope.settings.idProp], true);
+                        $scope.setSelectedItem(value[$scope.settings.idProp], value[$scope.settings.nameProp], true);
                     });
                 };
 
@@ -247,8 +252,8 @@ directiveModule.directive('ngDropdownMultiselect', ['$filter', '$document', '$co
                     }
                 };
 
-                $scope.setSelectedItem = function (id, dontRemove) {
-                    var findObj = getFindObj(id);
+                $scope.setSelectedItem = function (id, name, dontRemove) {
+                    var findObj = getFindObj(id, name);
                     var finalObj = null;
 
                     if ($scope.settings.externalIdProp === '') {
@@ -278,12 +283,14 @@ directiveModule.directive('ngDropdownMultiselect', ['$filter', '$document', '$co
                     }
                 };
 
-                $scope.isChecked = function (id) {
+                $scope.isChecked = function (id, name) {
                     if ($scope.singleSelection) {
-                        return $scope.selectedModel !== null && angular.isDefined($scope.selectedModel[$scope.settings.idProp]) && $scope.selectedModel[$scope.settings.idProp] === getFindObj(id)[$scope.settings.idProp];
+                        return $scope.selectedModel !== null && angular.isDefined($scope.selectedModel[$scope.settings.idProp]) && $scope.selectedModel[$scope.settings.idProp] === getFindObj(id, name)[$scope.settings.idProp];
                     }
 
-                    return _.findIndex($scope.selectedModel, getFindObj(id)) !== -1;
+                    //console.log($scope.selectedModel);
+
+                    return _.findIndex($scope.selectedModel, getFindObj(id, name)) !== -1;
                 };
 
                 $scope.externalEvents.onInitDone();
